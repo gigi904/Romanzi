@@ -37,7 +37,7 @@
     if (numeri[j] < valoreMinimo) valoreMinimo = numeri[j];
   }
 
-  var maggior50 = [];
+  var maggiori50 = [];
   for (var k = 0; k < numeri.length; k++) {
     if (numeri[k] > 50) maggiori50.push(numeri[k]);
   }
@@ -45,7 +45,7 @@
   var contenuto = "<table><tr>";
   for (var n = 0; n < numeri.length; n++) {
     contenuto += "<td>" + numeri[n] + "</td>";
-    if ((n + 1) % 10 === 0) contenuto += "</tr><tr";
+    if ((n + 1) % 10 === 0) contenuto += "</tr><tr>";
   }
   contenuto += "</tr></table>";
 
