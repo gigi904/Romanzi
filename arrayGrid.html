@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <title>Griglia Numeri Casuali</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    table { border-collapse: collapse; margin-top: 10px; }
+    td, th { border: 1px solid #000; padding: 6px 8px; text-align: center; }
+    h2 { margin-bottom: 8px; }
+    .info { margin-top: 12px; }
+  </style>
+</head>
+<body>
+
+<h2>Generatore di numeri casuali da -100 a 100</h2>
+
+<div id="grigliaRisultati"></div>
+
+<script>
+  var numeri = [];
+  for (var indice = 0; indice < 100; indice++) {
+    var valore = Math.floor(Math.random() * 201) - 100;
+    numeri.push(valore);
+  }
+
+  var sommaTotale = 0;
+  for (var i = 0; i < numeri.length; i++) {
+    sommaTotale += numeri[i];
+  }
+  var mediaCalcolata = sommaTotale / numeri.length;
+
+  var valoreMassimo = numeri[0];
+  var valoreMinimo = numeri[0];
+  for (var j = 1; j < numeri.length; j++) {
+    if (numeri[j] > valoreMassimo) valoreMassimo = numeri[j];
+    if (numeri[j] < valoreMinimo) valoreMinimo = numeri[j];
+  }
+
+  var maggior50 = [];
+  for (var k = 0; k < numeri.length; k++) {
+    if (numeri[k] > 50) maggiori50.push(numeri[k]);
+  }
+
+  var contenuto = "<table><tr>";
+  for (var n = 0; n < numeri.length; n++) {
+    contenuto += "<td>" + numeri[n] + "</td>";
+    if ((n + 1) % 10 === 0) contenuto += "</tr><tr";
+  }
+  contenuto += "</tr></table>";
+
+  contenuto += "<div class='info'><p><strong>Media:</strong> " + mediaCalcolata.toFixed(2) + "</p>";
+  contenuto += "<p><strong>Valore massimo:</strong> " + valoreMassimo + "</p>";
+  contenuto += "<p><strong>Valore minimo:</strong> " + valoreMinimo + "</p>";
+  contenuto += "<h3>Numeri maggiori di 50:</h3>";
+  contenuto += "<p>" + (maggiori50.length ? maggiori50.join(", ") : "Nessuno") + "</p></div>";
+
+  document.getElementById("grigliaRisultati").innerHTML = contenuto;
+</script>
+
+</body>
+</html>
