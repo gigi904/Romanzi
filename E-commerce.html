@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Shop Semplice</title>
+<!-- Libreria esterna jsPDF per generare file PDF lato client -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 
@@ -10,44 +11,61 @@
 
 <h1>Negozio Online</h1>
 
-<!-- CARICA CSV -->
+<!-- Input per caricare un file CSV con i prodotti -->
 <input type="file" id="fileInput">
 
 <h2>Prodotti</h2>
+<!-- Contenitore dove verranno visualizzati dinamicamente i prodotti dal CSV -->
 <div id="prodotti"></div>
 
 <h2>Registrazione</h2>
-<input type="text" id="nome" placeholder="Nome">
-<input type="email" id="email" placeholder="Email">
+<!-- Campi per la registrazione dell'utente -->
+<input type="text"     id="nome"     placeholder="Nome">
+<input type="email"    id="email"    placeholder="Email">
 <input type="password" id="password" placeholder="Password">
 <button onclick="registrati()">Registrati</button>
 <button onclick="logout()">Logout</button>
 
 <h2>Carrello</h2>
+<!-- Lista degli articoli aggiunti al carrello -->
 <ul id="carrello"></ul>
 <button onclick="completaAcquisto()">Carrello (Acquista)</button>
 <button onclick="generaPDF()">Scarica PDF</button>
 
 <script>
+// Array che contiene tutti i prodotti caricati dal CSV
 let prodotti = [];
+
+// Array che contiene i prodotti aggiunti al carrello dall'utente
 let carrello = [];
+
+// Oggetto che rappresenta l'utente registrato; null se nessuno è loggato
 let utenteRegistrato = null;
 
-// LETTURA CSV
+
+// ── LETTURA CSV ──────────────────────────────────────────────────────────────
+// Si attiva quando l'utente seleziona un file tramite l'input
 document.getElementById("fileInput").addEventListener("change", function(e) {
     const file = e.target.files[0];
     const reader = new FileReader();
 
     reader.onload = function(event) {
         const testo = event.target.result;
+
+        // Divide il testo in righe (una riga = un prodotto)
         const righe = testo.split("\n");
 
-        prodotti = [];
+        prodotti = []; // Resetta l'array prima di ricaricare
 
+        // Parte da i=1 per saltare la prima riga (intestazione del CSV)
         for (let i = 1; i < righe.length; i++) {
             let colonne = righe[i].split(",");
+
+            // Ignora righe malformate con meno di 4 colonne
             if (colonne.length < 4) continue;
 
+            // Costruisce l'oggetto prodotto dalla riga CSV
+            // Formato atteso: tipo, nome, descrizione, prezzo
             let prodotto = {
                 tipo: colonne[0],
                 nome: colonne[1],
@@ -58,18 +76,24 @@ document.getElementById("fileInput").addEventListener("change", function(e) {
             prodotti.push(prodotto);
         }
 
+        // Dopo aver caricato i prodotti, li visualizza a schermo
         mostraProdotti();
     };
 
+    // Legge il file come testo semplice
     reader.readAsText(file);
 });
 
-// MOSTRA PRODOTTI
+
+// ── MOSTRA PRODOTTI ──────────────────────────────────────────────────────────
+// Genera dinamicamente una card HTML per ogni prodotto caricato
 function mostraProdotti() {
     const container = document.getElementById("prodotti");
-    container.innerHTML = "";
+    container.innerHTML = ""; // Pulisce il contenuto precedente
 
     prodotti.forEach((p, index) => {
+        // Crea una card per ogni prodotto con un pulsante per aggiungerlo al carrello
+        // L'indice (index) serve per identificare il prodotto da aggiungere
         container.innerHTML += `
             <div style="border:1px solid black; margin:10px; padding:10px;">
                 <h3>${p.nome}</h3>
@@ -82,67 +106,79 @@ function mostraProdotti() {
     });
 }
 
-// REGISTRAZIONE
+
+// ── REGISTRAZIONE ────────────────────────────────────────────────────────────
+// Legge i campi del form e crea l'oggetto utente in memoria
 function registrati() {
-    let nome = document.getElementById("nome").value;
-    let email = document.getElementById("email").value;
+    let nome     = document.getElementById("nome").value;
+    let email    = document.getElementById("email").value;
     let password = document.getElementById("password").value;
 
+    // Validazione base: nessun campo deve essere vuoto
     if (nome === "" || email === "" || password === "") {
         alert("Compila tutti i campi!");
         return;
     }
 
-    utenteRegistrato = {
-        nome: nome,
-        email: email,
-        password: password
-    };
+    // Salva i dati dell'utente (solo in memoria, nessun backend)
+    utenteRegistrato = { nome, email, password };
 
     alert("Registrazione completata!");
 }
 
-// LOGOUT
+
+// ── LOGOUT ───────────────────────────────────────────────────────────────────
+// Resetta l'utente e svuota il carrello
 function logout() {
     utenteRegistrato = null;
     carrello = [];
-    aggiornaCarrello();
+    aggiornaCarrello(); // Aggiorna la UI del carrello
     alert("Logout effettuato!");
 }
 
-// AGGIUNGI AL CARRELLO
+
+// ── AGGIUNGI AL CARRELLO ─────────────────────────────────────────────────────
+// Aggiunge il prodotto selezionato (per indice) al carrello
 function aggiungiCarrello(index) {
+    // Solo gli utenti registrati possono aggiungere prodotti
     if (!utenteRegistrato) {
         alert("Devi registrarti prima!");
         return;
     }
 
     carrello.push(prodotti[index]);
-    aggiornaCarrello();
+    aggiornaCarrello(); // Aggiorna la UI
 }
 
-// RIMUOVI DAL CARRELLO
+
+// ── RIMUOVI DAL CARRELLO ─────────────────────────────────────────────────────
+// Rimuove un prodotto dal carrello tramite il suo indice nell'array
 function rimuoviDalCarrello(index) {
-    carrello.splice(index, 1);
+    carrello.splice(index, 1); // Rimuove 1 elemento alla posizione index
     aggiornaCarrello();
 }
 
-// AGGIORNA CARRELLO
+
+// ── AGGIORNA CARRELLO ────────────────────────────────────────────────────────
+// Ridisegna la lista del carrello nella UI
 function aggiornaCarrello() {
     const lista = document.getElementById("carrello");
-    lista.innerHTML = "";
+    lista.innerHTML = ""; // Pulisce la lista prima di ridisegnarla
 
     carrello.forEach((p, index) => {
         lista.innerHTML += `
             <li>
                 ${p.nome} - €${p.prezzo}
+                <!-- Il pulsante ❌ rimuove l'elemento corrispondente -->
                 <button onclick="rimuoviDalCarrello(${index})">❌</button>
             </li>
         `;
     });
 }
 
-// COMPLETA ACQUISTO
+
+// ── COMPLETA ACQUISTO ────────────────────────────────────────────────────────
+// Simula il completamento di un ordine e svuota il carrello
 function completaAcquisto() {
     if (!utenteRegistrato) {
         alert("Registrati prima!");
@@ -156,31 +192,38 @@ function completaAcquisto() {
 
     alert("Acquisto completato da " + utenteRegistrato.nome);
 
+    // Svuota il carrello dopo l'acquisto
     carrello = [];
     aggiornaCarrello();
 }
 
-// GENERA PDF
+
+// ── GENERA PDF ───────────────────────────────────────────────────────────────
+// Crea e scarica un PDF di riepilogo dell'ordine usando jsPDF
 function generaPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    const { jsPDF } = window.jspdf; // Estrae la classe dalla libreria globale
+    const doc = new jsPDF();        // Crea un nuovo documento PDF
 
     if (!utenteRegistrato) {
         alert("Registrati prima!");
         return;
     }
 
-    doc.text("Riepilogo Ordine", 10, 10);
-    doc.text("Nome: " + utenteRegistrato.nome, 10, 20);
+    // Intestazione del PDF con i dati dell'utente
+    // Il secondo e terzo parametro sono le coordinate x, y in mm
+    doc.text("Riepilogo Ordine",              10, 10);
+    doc.text("Nome: "  + utenteRegistrato.nome,  10, 20);
     doc.text("Email: " + utenteRegistrato.email, 10, 30);
 
-    let y = 40;
+    let y = 40; // Posizione verticale iniziale per la lista prodotti
 
+    // Aggiunge una riga per ogni prodotto nel carrello
     carrello.forEach(p => {
         doc.text(p.nome + " - €" + p.prezzo, 10, y);
-        y += 10;
+        y += 10; // Sposta il cursore verso il basso per la riga successiva
     });
 
+    // Scarica il file con il nome "ordine.pdf"
     doc.save("ordine.pdf");
 }
 </script>
