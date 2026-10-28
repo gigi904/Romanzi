@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anagrafica Classe - Lettore XML Interattivo</title>
+    <!-- Tailwind CSS CDN per stilizzazione moderna -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome per le icone -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Personalizzazione scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased">
+
+    <!-- Header / Navbar -->
+    <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="p-2.5 bg-indigo-600 rounded-xl shadow-inner border border-indigo-500/50">
+                    <i class="fa-solid font-mono text-2xl text-indigo-200">&lt;/&gt;</i>
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-bold tracking-tight">Anagrafica Classe XML</h1>
+                    <p class="text-xs text-indigo-200">Lettura, parsing XHR ed elaborazione dati tabellari</p>
+                </div>
+            </div>
+            
+            <!-- Azioni Rapide Header -->
+            <div class="flex items-center flex-wrap gap-2">
+                <button onclick="loadDefaultXmlXHR()" class="inline-flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-lg text-sm font-medium transition-all shadow-sm border border-indigo-500">
+                    <i class="fa-solid fa-cloud-arrow-down"></i>
+                    <span>Carica XHR Standard</span>
+                </button>
+                <label class="inline-flex items-center gap-2 bg-white text-indigo-700 hover:bg-indigo-50 px-3.5 py-2 rounded-lg text-sm font-medium cursor-pointer transition-all shadow-sm">
+                    <i class="fa-solid fa-file-import"></i>
+                    <span>Upload XML</span>
+                    <input type="file" id="xml-file-input" accept=".xml" class="hidden" onchange="handleFileUpload(event)">
+                </label>
+                <button onclick="toggleXmlEditor()" class="inline-flex items-center gap-2 bg-indigo-800 hover:bg-indigo-900 text-indigo-100 px-3.5 py-2 rounded-lg text-sm font-medium transition-all">
+                    <i class="fa-solid fa-code"></i>
+                    <span id="editor-toggle-text">Editor XML</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+        <!-- Statistiche KPI Dashboard -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="kpi-section">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Totale Studenti</p>
+                    <h3 class="text-2xl font-bold text-slate-800 mt-1" id="kpi-total">0</h3>
+                </div>
+                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-lg flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-user-graduate"></i>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Media Classe</p>
+                    <h3 class="text-2xl font-bold text-slate-800 mt-1" id="kpi-avg-gpa">0.00</h3>
+                </div>
+                <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Studenti Sufficienti</p>
+                    <h3 class="text-2xl font-bold text-slate-800 mt-1" id="kpi-passed">0</h3>
+                </div>
+                <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-circle-check"></i>
+                </div>
+            </div>
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Città Più Rappresentata</p>
+                    <h3 class="text-lg font-bold text-slate-800 mt-1 truncate max-w-[140px]" id="kpi-top-city">-</h3>
+                </div>
+                <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-lg flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-city"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pannello Editor XML (Nascosto di default o espandibile) -->
+        <section id="xml-editor-panel" class="hidden bg-slate-900 text-slate-100 rounded-xl shadow-lg border border-slate-800 overflow-hidden transition-all duration-300">
+            <div class="bg-slate-800/80 px-4 py-3 flex flex-wrap items-center justify-between gap-3 border-b border-slate-700/60">
+                <div class="flex items-center gap-2">
+                    <i class="fa-solid fa-code text-indigo-400"></i>
+                    <span class="font-medium text-sm text-slate-200">Editor e Sorgente XML in Tempo Reale</span>
+                    <span id="xml-status-badge" class="ml-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        XML Valido
+                    </span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="formatXmlInEditor()" class="px-2.5 py-1 bg-slate-700 hover:bg-slate-600 text-xs text-slate-200 rounded transition-colors flex items-center gap-1">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Formatta XML
+                    </button>
+                    <button onclick="downloadXmlFile()" class="px-2.5 py-1 bg-slate-700 hover:bg-slate-600 text-xs text-slate-200 rounded transition-colors flex items-center gap-1">
+                        <i class="fa-solid fa-download"></i> Scarica XML
+                    </button>
+                    <button onclick="toggleXmlEditor()" class="text-slate-400 hover:text-slate-200 px-2 py-1 text-xs">
+                        <i class="fa-solid fa-xmark text-base"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="p-4">
+                <textarea id="xml-textarea" spellcheck="false" class="w-full h-64 bg-slate-950 text-emerald-400 font-mono text-xs sm:text-sm p-3 rounded-lg border border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y" placeholder="Inserisci il codice XML qui..."></textarea>
+                <div id="xml-error-box" class="hidden mt-2 p-3 bg-red-950/60 border border-red-700/50 rounded-lg text-red-300 text-xs font-mono">
+                    <i class="fa-solid fa-triangle-exclamation mr-1"></i> <span id="xml-error-msg">Errore di sintassi</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Filtri e Barra Ricerca -->
+        <section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+            
+            <!-- Campo Ricerca Testuale -->
+            <div class="relative flex-grow">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </div>
+                <input type="text" id="search-input" oninput="applyFilters()" placeholder="Cerca per nome, cognome, codice fiscale, email..." 
+                    class="w-full pl-9 pr-4 py-2.5 bg-slate-50 border border-slate-300 rounded-lg text-sm text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
+            </div>
+
+            <!-- Filtri Combinati -->
+            <div class="flex flex-wrap items-center gap-3">
+                <!-- Filtro Città -->
+                <div class="flex items-center gap-2">
+                    <label for="city-filter" class="text-xs font-medium text-slate-500 whitespace-nowrap">Città:</label>
+                    <select id="city-filter" onchange="applyFilters()" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="">Tutte le città</option>
+                    </select>
+                </div>
+
+                <!-- Filtro Media Minima -->
+                <div class="flex items-center gap-2">
+                    <label for="gpa-filter" class="text-xs font-medium text-slate-500 whitespace-nowrap">Media Minima:</label>
+                    <select id="gpa-filter" onchange="applyFilters()" class="bg-slate-50 border border-slate-300 text-slate-700 text-sm rounded-lg px-3 py-2 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <option value="0">Tutti i voti</option>
+                        <option value="6.0">Sufficiente (≥ 6.0)</option>
+                        <option value="7.0">Buono (≥ 7.0)</option>
+                        <option value="8.0">Ottimo (≥ 8.0)</option>
+                    </select>
+                </div>
+
+                <!-- Reset Filtri -->
+                <button onclick="resetFilters()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-medium transition-colors" title="Azzera filtri">
+                    <i class="fa-solid fa-filter-circle-xmark"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- Tabella Dati Anagrafici -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+            <!-- Loading Indicator -->
+            <div id="table-loading" class="hidden py-12 text-center">
+                <i class="fa-solid fa-circle-notch fa-spin text-3xl text-indigo-600 mb-3"></i>
+                <p class="text-sm font-medium text-slate-600">Caricamento dati XML in corso...</p>
+            </div>
+
+            <!-- Tabella Effettiva -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100/80 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider select-none">
+                            <th onclick="sortTable('nome')" class="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors">
+                                <div class="flex items-center gap-1.5">
+                                    <span>Nome & Cognome</span>
+                                    <i id="sort-icon-nome" class="fa-solid fa-sort text-slate-400 text-xs"></i>
+                                </div>
+                            </th>
+                            <th onclick="sortTable('dataNascita')" class="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors hidden md:table-cell">
+                                <div class="flex items-center gap-1.5">
+                                    <span>Data di Nascita</span>
+                                    <i id="sort-icon-dataNascita" class="fa-solid fa-sort text-slate-400 text-xs"></i>
+                                </div>
+                            </th>
+                            <th onclick="sortTable('codiceFiscale')" class="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors hidden lg:table-cell">
+                                <div class="flex items-center gap-1.5">
+                                    <span>Codice Fiscale</span>
+                                    <i id="sort-icon-codiceFiscale" class="fa-solid fa-sort text-slate-400 text-xs"></i>
+                                </div>
+                            </th>
+                            <th onclick="sortTable('email')" class="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors hidden sm:table-cell">
+                                <div class="flex items-center gap-1.5">
+                                    <span>Email</span>
+                                    <i id="sort-icon-email" class="fa-solid fa-sort text-slate-400 text-xs"></i>
+                                </div>
+                            </th>
+                            <th onclick="sortTable('citta')" class="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors">
+                                <div class="flex items-center gap-1.5">
+                                    <span>Città</span>
+                                    <i id="sort-icon-citta" class="fa-solid fa-sort text-slate-400 text-xs"></i>
+                                </div>
+                            </th>
+                            <th onclick="sortTable('mediaVoti')" class="py-3.5 px-4 cursor-pointer hover:bg-slate-200/60 transition-colors">
+                                <div class="flex items-center gap-1.5">
+                                    <span>Media Voti</span>
+                                    <i id="sort-icon-mediaVoti" class="fa-solid fa-sort text-slate-400 text-xs"></i>
+                                </div>
+                            </th>
+                            <th class="py-3.5 px-4">Ruolo / Note</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="divide-y divide-slate-200 text-sm">
+                        <!-- Le righe della tabella verranno inserite qui dinamicamente via JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Stato Tabella Vuota -->
+            <div id="empty-state" class="hidden py-12 text-center text-slate-500">
+                <i class="fa-solid fa-users-slash text-4xl mb-3 text-slate-300"></i>
+                <p class="font-medium text-base">Nessun studente trovato</p>
+                <p class="text-xs text-slate-400 mt-1">Prova a modificare i parametri di ricerca o carica un altro file XML.</p>
+            </div>
+
+            <!-- Footer Tabella -->
+            <div class="px-4 py-3 bg-slate-50 border-t border-slate-200 text-xs text-slate-500 flex flex-col sm:flex-row items-center justify-between gap-2">
+                <div>
+                    Mostrati <span id="showing-count" class="font-semibold text-slate-700">0</span> di <span id="total-count" class="font-semibold text-slate-700">0</span> studenti
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Media &ge; 8.0
+                    <span class="inline-block w-2.5 h-2.5 rounded-full bg-blue-500 ml-2"></span> Media &ge; 6.0
+                    <span class="inline-block w-2.5 h-2.5 rounded-full bg-rose-500 ml-2"></span> Insufficiente
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer Principale -->
+    <footer class="bg-white border-t border-slate-200 mt-auto py-4 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4">
+            Applicazione Web per la Lettura di File XML • Realizzata con JavaScript DOMParser &amp; XMLHttpRequest
+        </div>
+    </footer>
+
+    <!-- Sistema Notifiche Toast -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- SCRIPT JAVASCRIPT PRINCIPALE -->
+    <script>
+        // Data XML di Esempio Predefinita (Struttura Anagrafica Classe 5A)
+        const sampleXmlData = `<?xml version="1.0" encoding="UTF-8"?>
+<classe anno="5" sezione="A" indirizzo="Informatica e Telecomunicazioni">
+    <studenti>
+        <studente id="1">
+            <nome>Marco</nome>
+            <cognome>Rossi</cognome>
+            <data_nascita>2005-04-12</data_nascita>
+            <codice_fiscale>RSSMRC05D12H501Z</codice_fiscale>
+            <email>marco.rossi@scuola.it</email>
+            <citta>Milano</citta>
+            <media_voti>8.5</media_voti>
+            <note>Rappresentante di classe</note>
+        </studente>
+        <studente id="2">
+            <nome>Giulia</nome>
+            <cognome>Bianchi</cognome>
+            <data_nascita>2005-09-25</data_nascita>
+            <codice_fiscale>BNCGLI05P65F205K</codice_fiscale>
+            <email>giulia.bianchi@scuola.it</email>
+            <citta>Monza</citta>
+            <media_voti>9.2</media_voti>
+            <note>Tutor Matematica</note>
+        </studente>
+        <studente id="3">
+            <nome>Alessandro</nome>
+            <cognome>Ferrari</cognome>
+            <data_nascita>2004-11-03</data_nascita>
+            <codice_fiscale>FRRLSN04S03H501Y</codice_fiscale>
+            <email>alessandro.ferrari@scuola.it</email>
+            <citta>Milano</citta>
+            <media_voti>7.4</media_voti>
+            <note>Responsabile Laboratorio</note>
+        </studente>
+        <studente id="4">
+            <nome>Sofia</nome>
+            <cognome>Esposito</cognome>
+            <data_nascita>2005-01-18</data_nascita>
+            <codice_fiscale>SPSSFO05A58F205X</codice_fiscale>
+            <email>sofia.esposito@scuola.it</email>
+            <citta>Bergamo</citta>
+            <media_voti>6.8</media_voti>
+            <note>Membro del Consiglio</note>
+        </studente>
+        <studente id="5">
+            <nome>Luca</nome>
+            <cognome>Romano</cognome>
+            <data_nascita>2005-06-30</data_nascita>
+            <codice_fiscale>RMNLCU05H30H501J</codice_fiscale>
+            <email>luca.romano@scuola.it</email>
+            <citta>Monza</citta>
+            <media_voti>5.5</media_voti>
+            <note>Recupero programmato</note>
+        </studente>
+        <studente id="6">
+            <nome>Chiara</nome>
+            <cognome>Colombo</cognome>
+            <data_nascita>2005-08-14</data_nascita>
+            <codice_fiscale>CLMCHR05M54H501W</codice_fiscale>
+            <email>chiara.colombo@scuola.it</email>
+            <citta>Sesto San Giovanni</citta>
+            <media_voti>8.9</media_voti>
+            <note>Certificazione English C1</note>
+        </studente>
+        <studente id="7">
+            <nome>Matteo</nome>
+            <cognome>Ricci</cognome>
+            <data_nascita>2004-12-05</data_nascita>
+            <codice_fiscale>RCCMTT04T05F205P</codice_fiscale>
+            <email>matteo.ricci@scuola.it</email>
+            <citta>Bergamo</citta>
+            <media_voti>7.9</media_voti>
+            <note>Atleta agonista</note>
+        </studente>
+        <studente id="8">
+            <nome>Elena</nome>
+            <cognome>Marini</cognome>
+            <data_nascita>2005-03-22</data_nascita>
+            <codice_fiscale>MRNLNE05C62H501Q</codice_fiscale>
+            <email>elena.marini@scuola.it</email>
+            <citta>Milano</citta>
+            <media_voti>9.5</media_voti>
+            <note>Capoclasse</note>
+        </studente>
+    </studenti>
+</classe>`;
+
+        // Stato Globale dell'applicazione
+        let rawXmlString = sampleXmlData;
+        let studentsList = [];
+        let filteredStudents = [];
+        let currentSort = { column: 'cognome', direction: 'asc' };
+
+        // Inizializzazione all'avvio della pagina
+        window.onload = function() {
+            // Carica la stringa predefinita tramite simulazione XMLHttpRequest
+            loadDefaultXmlXHR();
+
+            // Event listener per l'editor XML
+            const textarea = document.getElementById('xml-textarea');
+            textarea.addEventListener('input', debounce(handleEditorInput, 400));
+        };
+
+        /**
+         * 1. CARICAMENTO Dati XML tramite XMLHttpRequest (XHR)
+         * Utilizza un oggetto Blob per creare una richiesta HTTP asincrona reale senza blocchi CORS.
+         */
+        function loadDefaultXmlXHR() {
+            showLoading(true);
+
+            // Creazione del Blob per simulare un URL di un file locale / server
+            const blob = new Blob([sampleXmlData], { type: 'text/xml' });
+            const blobUrl = URL.createObjectURL(blob);
+
+            // Utilizzo dell'oggetto XMLHttpRequest standard
+            const xhr = new XMLHttpRequest();
+            xhr.open("GET", blobUrl, true);
+
+            xhr.onload = function() {
+                showLoading(false);
+                if (xhr.status === 200 || xhr.status === 0) {
+                    rawXmlString = xhr.responseText;
+                    document.getElementById('xml-textarea').value = rawXmlString;
+                    parseAndProcessXml(rawXmlString);
+                    showToast("Dati XML caricati con successo tramite XMLHttpRequest!", "success");
+                } else {
+                    showToast("Errore durante la richiesta XHR: " + xhr.status, "error");
+                }
+                URL.revokeObjectURL(blobUrl);
+            };
+
+            xhr.onerror = function() {
+                showLoading(false);
+                showToast("Errore di rete durante la richiesta XHR.", "error");
+                URL.revokeObjectURL(blobUrl);
+            };
+
+            // Invio della richiesta asincrona
+            xhr.send();
+        }
+
+        /**
+         * 2. UPLOAD DI UN FILE XML PERSONALIZZATO
+         */
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (file.type !== "text/xml" && !file.name.endsWith('.xml')) {
+                showToast("Seleziona un file valido con estensione .xml", "warning");
+                return;
+            }
+
+            const reader = new FileReader();
+            showLoading(true);
+
+            reader.onload = function(e) {
+                showLoading(false);
+                rawXmlString = e.target.result;
+                document.getElementById('xml-textarea').value = rawXmlString;
+                
+                if (parseAndProcessXml(rawXmlString)) {
+                    showToast(`File "${file.name}" caricato correttamente!`, "success");
+                }
+            };
+
+            reader.onerror = function() {
+                showLoading(false);
+                showToast("Errore nella lettura del file selezionale.", "error");
+            };
+
+            reader.readAsText(file);
+            // Reset dell'input file
+            event.target.value = '';
+        }
+
+        /**
+         * 3. PARSING DELL'XML E ESTRAZIONE DATI (DOMParser)
+         */
+        function parseAndProcessXml(xmlText) {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+            // Controllo Sintattico Errore di Parsing
+            const parserError = xmlDoc.getElementsByTagName("parsererror");
+            const errorBox = document.getElementById("xml-error-box");
+            const statusBadge = document.getElementById("xml-status-badge");
+
+            if (parserError.length > 0) {
+                const errorMsg = parserError[0].textContent;
+                errorBox.classList.remove("hidden");
+                document.getElementById("xml-error-msg").textContent = errorMsg.split('\n')[0];
+                
+                statusBadge.className = "ml-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-500/20 text-red-300 border border-red-500/30";
+                statusBadge.textContent = "Errore XML";
+                return false;
+            }
+
+            // XML Valido
+            errorBox.classList.add("hidden");
+            statusBadge.className = "ml-2 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30";
+            statusBadge.textContent = "XML Valido";
+
+            // Estrazione record dei singoli studenti
+            const studentNodes = xmlDoc.getElementsByTagName("studente");
+            const parsedList = [];
+
+            for (let i = 0; i < studentNodes.length; i++) {
+                const node = studentNodes[i];
+                
+                // Helper per leggere tag sicuri
+                const getVal = (tagName) => {
+                    const el = node.getElementsByTagName(tagName)[0];
+                    return el ? el.textContent.trim() : "";
+                };
+
+                parsedList.push({
+                    id: node.getAttribute("id") || (i + 1).toString(),
+                    nome: getVal("nome"),
+                    cognome: getVal("cognome"),
+                    dataNascita: getVal("data_nascita"),
+                    codiceFiscale: getVal("codice_fiscale"),
+                    email: getVal("email"),
+                    citta: getVal("citta"),
+                    mediaVoti: parseFloat(getVal("media_voti")) || 0,
+                    note: getVal("note")
+                });
+            }
+
+            studentsList = parsedList;
+            populateCityFilterOptions();
+            applyFilters();
+            updateKPIs();
+            return true;
+        }
+
+        /**
+         * 4. GESTIONE FILTRI E ORDINAMENTO
+         */
+        function applyFilters() {
+            const searchQuery = document.getElementById('search-input').value.toLowerCase().trim();
+            const selectedCity = document.getElementById('city-filter').value;
+            const minGpa = parseFloat(document.getElementById('gpa-filter').value) || 0;
+
+            filteredStudents = studentsList.filter(student => {
+                // Filtro Ricerca Globale
+                const matchesSearch = 
+                    student.nome.toLowerCase().includes(searchQuery) ||
+                    student.cognome.toLowerCase().includes(searchQuery) ||
+                    student.codiceFiscale.toLowerCase().includes(searchQuery) ||
+                    student.email.toLowerCase().includes(searchQuery) ||
+                    student.citta.toLowerCase().includes(searchQuery) ||
+                    student.note.toLowerCase().includes(searchQuery);
+
+                // Filtro Città
+                const matchesCity = !selectedCity || student.citta === selectedCity;
+
+                // Filtro Media Voti
+                const matchesGpa = student.mediaVoti >= minGpa;
+
+                return matchesSearch && matchesCity && matchesGpa;
+            });
+
+            // Applica l'ordinamento corrente
+            sortDataArray(filteredStudents, currentSort.column, currentSort.direction);
+
+            // Renderizza la tabella
+            renderTable(filteredStudents);
+        }
+
+        function sortTable(column) {
+            if (currentSort.column === column) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.column = column;
+                currentSort.direction = 'asc';
+            }
+            updateSortIcons();
+            applyFilters();
+        }
+
+        function sortDataArray(arr, column, direction) {
+            arr.sort((a, b) => {
+                let valA = a[column];
+                let valB = b[column];
+
+                if (typeof valA === 'string') {
+                    valA = valA.toLowerCase();
+                    valB = valB.toLowerCase();
+                }
+
+                if (valA < valB) return direction === 'asc' ? -1 : 1;
+                if (valA > valB) return direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        function updateSortIcons() {
+            const columns = ['nome', 'dataNascita', 'codiceFiscale', 'email', 'citta', 'mediaVoti'];
+            columns.forEach(col => {
+                const icon = document.getElementById(`sort-icon-${col}`);
+                if (!icon) return;
+                
+                if (col === currentSort.column) {
+                    icon.className = `fa-solid fa-sort-${currentSort.direction === 'asc' ? 'up' : 'down'} text-indigo-600 text-xs`;
+                } else {
+                    icon.className = 'fa-solid fa-sort text-slate-400 text-xs';
+                }
+            });
+        }
+
+        function resetFilters() {
+            document.getElementById('search-input').value = '';
+            document.getElementById('city-filter').value = '';
+            document.getElementById('gpa-filter').value = '0';
+            applyFilters();
+            showToast("Filtri azzerati", "info");
+        }
+
+        /**
+         * 5. RENDERING TABELLA HTML
+         */
+        function renderTable(data) {
+            const tbody = document.getElementById('table-body');
+            const emptyState = document.getElementById('empty-state');
+            tbody.innerHTML = '';
+
+            document.getElementById('showing-count').textContent = data.length;
+            document.getElementById('total-count').textContent = studentsList.length;
+
+            if (data.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            data.forEach(student => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50/80 transition-colors border-b border-slate-100';
+
+                // Badge Voto stilizzato
+                let gpaBadgeClass = "bg-rose-100 text-rose-700 border-rose-200";
+                if (student.mediaVoti >= 8.0) {
+                    gpaBadgeClass = "bg-emerald-100 text-emerald-800 border-emerald-200";
+                } else if (student.mediaVoti >= 6.0) {
+                    gpaBadgeClass = "bg-blue-100 text-blue-800 border-blue-200";
+                }
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-medium text-slate-900 whitespace-nowrap">
+                        <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center">
+                                ${escapeHtml(student.nome.charAt(0))}${escapeHtml(student.cognome.charAt(0))}
+                            </div>
+                            <div>
+                                <span class="font-semibold block">${escapeHtml(student.nome)} ${escapeHtml(student.cognome)}</span>
+                                <span class="text-xs text-slate-400 block sm:hidden">${escapeHtml(student.email)}</span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-3 px-4 text-slate-600 whitespace-nowrap hidden md:table-cell">
+                        ${formatDate(student.dataNascita)}
+                    </td>
+                    <td class="py-3 px-4 text-slate-600 font-mono text-xs whitespace-nowrap hidden lg:table-cell">
+                        <span class="bg-slate-100 px-2 py-1 rounded border border-slate-200">${escapeHtml(student.codiceFiscale)}</span>
+                    </td>
+                    <td class="py-3 px-4 text-slate-600 whitespace-nowrap hidden sm:table-cell">
+                        <a href="mailto:${escapeHtml(student.email)}" class="text-indigo-600 hover:underline flex items-center gap-1.5">
+                            <i class="fa-regular fa-envelope text-xs"></i> ${escapeHtml(student.email)}
+                        </a>
+                    </td>
+                    <td class="py-3 px-4 text-slate-600 whitespace-nowrap">
+                        <span class="inline-flex items-center gap-1">
+                            <i class="fa-solid fa-location-dot text-slate-400 text-xs"></i> ${escapeHtml(student.citta)}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 whitespace-nowrap">
+                        <span class="px-2.5 py-1 rounded-full text-xs font-bold border ${gpaBadgeClass}">
+                            ${student.mediaVoti.toFixed(1)}
+                        </span>
+                    </td>
+                    <td class="py-3 px-4 text-slate-500 text-xs max-w-xs truncate">
+                        ${student.note ? `<span class="bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">${escapeHtml(student.note)}</span>` : '<span class="text-slate-300">-</span>'}
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        /**
+         * 6. UPDATE DASHBOARD STATISTICHE (KPIs)
+         */
+        function updateKPIs() {
+            document.getElementById('kpi-total').textContent = studentsList.length;
+
+            if (studentsList.length === 0) {
+                document.getElementById('kpi-avg-gpa').textContent = "0.00";
+                document.getElementById('kpi-passed').textContent = "0";
+                document.getElementById('kpi-top-city').textContent = "-";
+                return;
+            }
+
+            // Calcolo Media Classe
+            const sumGpa = studentsList.reduce((acc, s) => acc + s.mediaVoti, 0);
+            const avgGpa = sumGpa / studentsList.length;
+            document.getElementById('kpi-avg-gpa').textContent = avgGpa.toFixed(2);
+
+            // Calcolo Sufficienti
+            const passedCount = studentsList.filter(s => s.mediaVoti >= 6.0).length;
+            document.getElementById('kpi-passed').textContent = `${passedCount} (${Math.round((passedCount/studentsList.length)*100)}%)`;
+
+            // Calcolo Città Più Frequente
+            const cityCounts = {};
+            studentsList.forEach(s => {
+                if (s.citta) cityCounts[s.citta] = (cityCounts[s.citta] || 0) + 1;
+            });
+            let topCity = "-";
+            let maxCount = 0;
+            for (const city in cityCounts) {
+                if (cityCounts[city] > maxCount) {
+                    maxCount = cityCounts[city];
+                    topCity = city;
+                }
+            }
+            document.getElementById('kpi-top-city').textContent = topCity;
+        }
+
+        /**
+         * Popola la Select dinamica dei filtri Città
+         */
+        function populateCityFilterOptions() {
+            const citySelect = document.getElementById('city-filter');
+            const currentSelected = citySelect.value;
+            
+            // Estrae città uniche
+            const cities = [...new Set(studentsList.map(s => s.citta).filter(Boolean))].sort();
+            
+            citySelect.innerHTML = '<option value="">Tutte le città</option>';
+            cities.forEach(city => {
+                const opt = document.createElement('option');
+                opt.value = city;
+                opt.textContent = city;
+                citySelect.appendChild(opt);
+            });
+
+            citySelect.value = currentSelected;
+        }
+
+        /**
+         * 7. EDITOR XML IN TEMPO REALE E UTILITIES
+         */
+        function toggleXmlEditor() {
+            const panel = document.getElementById('xml-editor-panel');
+            const btnText = document.getElementById('editor-toggle-text');
+            
+            if (panel.classList.contains('hidden')) {
+                panel.classList.remove('hidden');
+                btnText.textContent = "Chiudi Editor";
+            } else {
+                panel.classList.add('hidden');
+                btnText.textContent = "Editor XML";
+            }
+        }
+
+        function handleEditorInput() {
+            const val = document.getElementById('xml-textarea').value;
+            rawXmlString = val;
+            parseAndProcessXml(val);
+        }
+
+        function formatXmlInEditor() {
+            try {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(rawXmlString, "text/xml");
+                if (xmlDoc.getElementsByTagName("parsererror").length > 0) {
+                    showToast("Impossibile formattare: XML non valido", "error");
+                    return;
+                }
+                const serializer = new XMLSerializer();
+                const formatted = formatXmlString(serializer.serializeToString(xmlDoc));
+                document.getElementById('xml-textarea').value = formatted;
+                rawXmlString = formatted;
+                showToast("XML formattato correttamente", "success");
+            } catch (e) {
+                showToast("Errore di formattazione XML", "error");
+            }
+        }
+
+        function formatXmlString(xml) {
+            let reg = /(>)(<)(\/*)/g;
+            let w = xml.replace(reg, '$1\r\n$2$3');
+            let pad = 0;
+            let formatted = '';
+            let lines = w.split('\r\n');
+            for (let i = 0; i < lines.length; i++) {
+                let indent = 0;
+                let node = lines[i];
+                if (node.match(/.+<\/\w[^>]*>$/)) {
+                    indent = 0;
+                } else if (node.match(/^<\/\w/)) {
+                    if (pad != 0) pad -= 4;
+                } else if (node.match(/^<\w[^>]*[^\/]>.*$/)) {
+                    indent = 4;
+                } else {
+                    indent = 0;
+                }
+                let padding = '';
+                for (let p = 0; p < pad; p++) padding += ' ';
+                formatted += padding + node + '\r\n';
+                pad += indent;
+            }
+            return formatted.trim();
+        }
+
+        function downloadXmlFile() {
+            const blob = new Blob([rawXmlString], { type: 'text/xml' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'anagrafica_classe.xml';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast("Download del file XML avviato", "info");
+        }
+
+        // Helpers UI (Loading, Date, Escape HTML, Toast)
+        function showLoading(isLoading) {
+            const loader = document.getElementById('table-loading');
+            if (isLoading) loader.classList.remove('hidden');
+            else loader.classList.add('hidden');
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return "-";
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+            return dateStr;
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")
+                      .replace(/"/g, "&quot;")
+                      .replace(/'/g, "&#039;");
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function(...args) {
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(this, args), wait);
+            };
+        }
+
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-slate-800 text-white';
+            let icon = 'fa-circle-info';
+
+            if (type === 'success') {
+                bgClass = 'bg-emerald-600 text-white';
+                icon = 'fa-circle-check';
+            } else if (type === 'error') {
+                bgClass = 'bg-rose-600 text-white';
+                icon = 'fa-triangle-exclamation';
+            } else if (type === 'warning') {
+                bgClass = 'bg-amber-500 text-white';
+                icon = 'fa-circle-exclamation';
+            }
+
+            toast.className = `${bgClass} pointer-events-auto px-4 py-3 rounded-lg shadow-xl text-sm font-medium flex items-center gap-2.5 transition-all duration-300 transform translate-y-2 opacity-0`;
+            toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${escapeHtml(message)}</span>`;
+
+            container.appendChild(toast);
+
+            // Animate in
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            // Remove after 3.5s
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+    </script>
+</body>
+</html>
