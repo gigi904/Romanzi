@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Andamento Nazionale COVID-19</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f6f9;
+        }
+        h2 {
+            color: #333;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #2c3e50;
+            color: white;
+            font-size: 14px;
+        }
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        tr:hover {
+            background-color: #f1f1f1;
+        }
+        #loading {
+            font-weight: bold;
+            color: #2980b9;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Andamento Nazionale COVID-19 (Dati Protezione Civile)</h2>
+    <div id="loading">Caricamento dati in corso...</div>
+
+    <table id="tabella-covid" style="display: none;">
+        <thead>
+            <tr>
+                <th>Data</th>
+                <th>Nuovi Positivi</th>
+                <th>Terapia Intensiva</th>
+                <th>Ricoverati con Sintomi</th>
+                <th>Isolamento Domiciliare</th>
+                <th>Totale Positivi</th>
+                <th>Dimessi / Guariti</th>
+                <th>Deceduti</th>
+                <th>Totale Casi</th>
+                <th>Tamponi</th>
+            </tr>
+        </thead>
+        <tbody id="contenuto-tabella">
+        </tbody>
+    </table>
+
+    <script>
+        // 1. Creazione dell'oggetto XMLHttpRequest (AJAX)
+        const xhr = new XMLHttpRequest();
+        const url = "https://raw.githubusercontent.com/pcm-dpc/COVID-19/master/dati-json/dpc-covid19-ita-andamento-nazionale.json";
+
+        // 2. Configurazione della richiesta GET
+        xhr.open("GET", url, true);
+
+        // 3. Definizione della funzione da eseguire al completamento della richiesta
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                // Convertiamo il testo della risposta in oggetto/array JavaScript
+                const dati = JSON.parse(xhr.responseText);
+                
+                const tbody = document.getElementById("contenuto-tabella");
+
+                // Iterate su ciascun elemento dell'array (ogni elemento corrisponde a una data)
+                dati.forEach(item => {
+                    const riga = document.createElement("tr");
+
+                    // Estrazione della data in formato YYYY-MM-DD
+                    const dataFormattata = item.data.substring(0, 10);
+
+                    // Costruzione HTML della riga tabellare
+                    riga.innerHTML = `
+                        <td><strong>${dataFormattata}</strong></td>
+                        <td>${item.nuovi_positivi.toLocaleString('it-IT')}</td>
+                        <td>${item.terapia_intensiva.toLocaleString('it-IT')}</td>
+                        <td>${item.ricoverati_con_sintomi.toLocaleString('it-IT')}</td>
+                        <td>${item.isolamento_domiciliare.toLocaleString('it-IT')}</td>
+                        <td>${item.totale_positivi.toLocaleString('it-IT')}</td>
+                        <td>${item.dimessi_guariti.toLocaleString('it-IT')}</td>
+                        <td>${item.deceduti.toLocaleString('it-IT')}</td>
+                        <td>${item.totale_casi.toLocaleString('it-IT')}</td>
+                        <td>${item.tamponi.toLocaleString('it-IT')}</td>
+                    `;
+
+                    tbody.appendChild(riga);
+                });
+
+                // Nascondiamo il messaggio di caricamento e mostriamo la tabella
+                document.getElementById("loading").style.display = "none";
+                document.getElementById("tabella-covid").style.display = "table";
+            } else {
+                document.getElementById("loading").textContent = "Errore nel caricamento dei dati (Codice: " + xhr.status + ")";
+            }
+        };
+
+        // Gestione errori di rete
+        xhr.onerror = function() {
+            document.getElementById("loading").textContent = "Errore di connessione di rete.";
+        };
+
+        // 4. Invio della richiesta
+        xhr.send();
+    </script>
+
+</body>
+</html>
