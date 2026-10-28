@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anagrafica Classe XML - Visualizzatore Tabellare</title>
+    <!-- Tailwind CSS CDN -->
+    
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans min-h-screen flex flex-col antialiased">
+
+    <!-- Header / Navbar -->
+    <header class="bg-slate-900 text-white shadow-md border-b border-slate-800 sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 p-2.5 rounded-xl shadow-lg shadow-blue-500/30 flex items-center justify-center">
+                    <i class="fa-solid fa-file-code text-xl text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+                        Anagrafica Classe XML
+                        <span id="badge-anno" class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-blue-900/60 text-blue-300 border border-blue-700/50">XML Reader</span>
+                    </h1>
+                    <p class="text-xs text-slate-400">Parsing asincrono e rappresentazione dinamica in HTML5</p>
+                </div>
+            </div>
+
+            <!-- Azioni Principali dell'Header -->
+            <div class="flex flex-wrap items-center gap-2.5">
+                <button onclick="caricaDatiEsempio()" class="inline-flex items-center gap-2 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg shadow-sm transition-all duration-150 focus:ring-2 focus:ring-blue-400 focus:outline-none">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <span>Carica Classe 5A</span>
+                </button>
+                
+                <label class="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 cursor-pointer transition-all duration-150 shadow-sm">
+                    <i class="fa-solid fa-upload text-blue-400"></i>
+                    <span>Sfoglia File XML</span>
+                    <input type="file" id="fileInput" accept=".xml" class="hidden" onchange="gestisciFileCaricato(event)">
+                </label>
+
+                <button onclick="apriModalXML()" class="inline-flex items-center gap-2 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg border border-slate-700 transition-all duration-150 shadow-sm">
+                    <i class="fa-solid fa-code text-amber-400"></i>
+                    <span>Vedi Sorgente XML</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenuto Principale -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+        <!-- Notifica / Banner Errore XML -->
+        <div id="error-banner" class="hidden bg-rose-50 border-l-4 border-rose-500 p-4 rounded-r-xl shadow-sm transition-all duration-200">
+            <div class="flex items-start">
+                <div class="flex-shrink-0">
+                    <i class="fa-solid fa-circle-exclamation text-rose-500 text-lg"></i>
+                </div>
+                <div class="ml-3 flex-1">
+                    <h3 class="text-sm font-semibold text-rose-800" id="error-title">Errore Parsing XML</h3>
+                    <div class="text-xs text-rose-700 mt-1 font-mono break-all" id="error-message">Descrizione dell'errore...</div>
+                </div>
+                <button onclick="nascondiErrore()" class="ml-auto text-rose-400 hover:text-rose-600 p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Schede di Riepilogo Statistici -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="stats-cards">
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Totale Studenti</p>
+                    <p class="text-2xl font-bold text-slate-900 mt-1" id="stat-totale">0</p>
+                </div>
+                <div class="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-users"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Media Generale Classe</p>
+                    <p class="text-2xl font-bold text-slate-900 mt-1" id="stat-media">0.0</p>
+                </div>
+                <div class="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Top Studente</p>
+                    <p class="text-base font-bold text-slate-900 mt-1 truncate max-w-[140px]" id="stat-top-student">-</p>
+                </div>
+                <div class="w-12 h-12 bg-amber-50 text-amber-600 rounded-xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-award"></i>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Città di Provenienza</p>
+                    <p class="text-2xl font-bold text-slate-900 mt-1" id="stat-citta">0</p>
+                </div>
+                <div class="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center text-xl">
+                    <i class="fa-solid fa-location-dot"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Barra Strumenti Tabella (Ricerca, Filtri, Export) -->
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+            <!-- Barra di Ricerca in Tempo Reale -->
+            <div class="relative w-full md:w-96">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                <input type="text" id="searchInput" oninput="filtraStudenti()" placeholder="Cerca per Nome, Cognome o Città..." class="w-full pl-10 pr-10 py-2 bg-slate-50 border border-slate-300 rounded-lg text-sm focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all">
+                <button onclick="pulisciRicerca()" id="btnClearSearch" class="hidden absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-1">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Informazioni e Badge Modalità caricamento -->
+            <div class="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+                <span class="text-xs text-slate-500" id="info-risultati">Mostrati 0 studenti</span>
+                <div class="h-4 w-px bg-slate-200 hidden sm:block"></div>
+                <button onclick="esportaJSON()" class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-md border border-slate-300 transition-all">
+                    <i class="fa-solid fa-download text-slate-500"></i>
+                    <span>Esporta JSON</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Tabella Dati Anagrafici -->
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead>
+                        <tr class="bg-slate-100 border-b border-slate-200 text-xs font-bold text-slate-600 uppercase tracking-wider select-none">
+                            <th scope="col" class="px-5 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors" onclick="ordinaPer('matricola')">
+                                <div class="flex items-center gap-1.5">
+                                    <span>Matricola</span>
+                                    <i class="fa-solid fa-sort text-slate-400 text-xs" id="sort-icon-matricola"></i>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-5 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors" onclick="ordinaPer('cognome')">
+                                <div class="flex items-center gap-1.5">
+                                    <span>Cognome & Nome</span>
+                                    <i class="fa-solid fa-sort text-slate-400 text-xs" id="sort-icon-cognome"></i>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-5 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors" onclick="ordinaPer('dataNascita')">
+                                <div class="flex items-center gap-1.5">
+                                    <span>Data Nascita</span>
+                                    <i class="fa-solid fa-sort text-slate-400 text-xs" id="sort-icon-dataNascita"></i>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-5 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors" onclick="ordinaPer('citta')">
+                                <div class="flex items-center gap-1.5">
+                                    <span>Città</span>
+                                    <i class="fa-solid fa-sort text-slate-400 text-xs" id="sort-icon-citta"></i>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-5 py-3.5">Email Contatto</th>
+                            <th scope="col" class="px-5 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors" onclick="ordinaPer('ruolo')">
+                                <div class="flex items-center gap-1.5">
+                                    <span>Ruolo / Stato</span>
+                                    <i class="fa-solid fa-sort text-slate-400 text-xs" id="sort-icon-ruolo"></i>
+                                </div>
+                            </th>
+                            <th scope="col" class="px-5 py-3.5 cursor-pointer hover:bg-slate-200 transition-colors text-right" onclick="ordinaPer('mediaVoti')">
+                                <div class="flex items-center justify-end gap-1.5">
+                                    <span>Media Voti</span>
+                                    <i class="fa-solid fa-sort text-slate-400 text-xs" id="sort-icon-mediaVoti"></i>
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="divide-y divide-slate-100 text-slate-700">
+                        <!-- Le righe verranno generate dinamicamente da JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Stato vuoto (Nessun Dato) -->
+            <div id="empty-state" class="hidden py-12 text-center">
+                <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto text-slate-400 text-2xl mb-3">
+                    <i class="fa-solid fa-folder-open"></i>
+                </div>
+                <h3 class="text-base font-semibold text-slate-800">Nessun dato trovato</h3>
+                <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">Non sono presenti studenti corrispondenti ai criteri di ricerca o il file XML caricato è vuoto.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Visualizzazione Sorgente XML -->
+    <div id="xmlModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 transition-opacity duration-200">
+        <div class="bg-slate-900 text-slate-100 rounded-2xl border border-slate-700 w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-950">
+                <div class="flex items-center space-x-2">
+                    <i class="fa-solid fa-code text-amber-400"></i>
+                    <h3 class="font-bold text-sm text-white">Sorgente XML Attuale</h3>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <button onclick="copiaCodiceXML()" id="btnCopiaXML" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 font-medium rounded-md border border-slate-700 transition-colors flex items-center gap-1.5">
+                        <i class="fa-solid fa-copy"></i>
+                        <span>Copia XML</span>
+                    </button>
+                    <button onclick="chiudiModalXML()" class="text-slate-400 hover:text-white p-1 rounded-lg">
+                        <i class="fa-solid fa-xmark text-lg"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Modal Body (Codice Formattato) -->
+            <div class="p-6 overflow-y-auto font-mono text-xs leading-relaxed bg-slate-900">
+                <pre><code id="xmlSourceContent" class="text-emerald-400 whitespace-pre-wrap break-all">Caricamento in corso...</code></pre>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-3 border-t border-slate-800 bg-slate-950 flex justify-end">
+                <button onclick="chiudiModalXML()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold rounded-lg transition-colors">
+                    Chiudi
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast di Notifica (Feedback Utente) -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl border border-slate-800 flex items-center space-x-3 transition-all duration-300 transform translate-y-10 opacity-0 pointer-events-none">
+        <i id="toast-icon" class="fa-solid fa-check-circle text-emerald-400"></i>
+        <span id="toast-message" class="text-xs font-medium">Operazione completata con successo!</span>
+    </div>
+
+    <!-- Script JavaScript Applicativo -->
+    <script>
+        // Data Store Globale dell'Applicazione
+        let listaStudenti = [];
+        let studentiFiltrati = [];
+        let XMLRawContent = '';
+        let sortCurrent = { column: 'cognome', direction: 'asc' };
+
+        // Dati XML di Esempio predefiniti (Classe 5A Informatica)
+        const xmlEsempio5A = `<?xml version="1.0" encoding="UTF-8"?>
+<classe nome="5A Informatica" annoScolastico="2025/2026">
+    <studente matricola="STU001">
+        <nome>Marco</nome>
+        <cognome>Rossi</cognome>
+        <dataNascita>2007-04-15</dataNascita>
+        <citta>Milano</citta>
+        <email>marco.rossi@scuola.it</email>
+        <ruolo>Rappresentante di Classe</ruolo>
+        <mediaVoti>8.75</mediaVoti>
+    </studente>
+    <studente matricola="STU002">
+        <nome>Sofia</nome>
+        <cognome>Bianchi</cognome>
+        <dataNascita>2007-09-22</dataNascita>
+        <citta>Monza</citta>
+        <email>sofia.bianchi@scuola.it</email>
+        <ruolo>Studente</ruolo>
+        <mediaVoti>9.40</mediaVoti>
+    </studente>
+    <studente matricola="STU003">
+        <nome>Alessandro</nome>
+        <cognome>Ferrari</cognome>
+        <dataNascita>2006-11-05</dataNascita>
+        <citta>Milano</citta>
+        <email>a.ferrari@scuola.it</email>
+        <ruolo>Tutor di Laboratorio</ruolo>
+        <mediaVoti>8.10</mediaVoti>
+    </studente>
+    <studente matricola="STU004">
+        <nome>Giulia</nome>
+        <cognome>Esposito</cognome>
+        <dataNascita>2007-01-30</dataNascita>
+        <citta>Bergamo</citta>
+        <email>giulia.esposito@scuola.it</email>
+        <ruolo>Studente</ruolo>
+        <mediaVoti>7.80</mediaVoti>
+    </studente>
+    <studente matricola="STU005">
+        <nome>Lorenzo</nome>
+        <cognome>Ricci</cognome>
+        <dataNascita>2007-06-12</dataNascita>
+        <citta>Brescia</citta>
+        <email>lorenzo.ricci@scuola.it</email>
+        <ruolo>Rappresentante di Classe</ruolo>
+        <mediaVoti>6.90</mediaVoti>
+    </studente>
+    <studente matricola="STU006">
+        <nome>Chiara</nome>
+        <cognome>Marini</cognome>
+        <dataNascita>2007-08-18</dataNascita>
+        <citta>Monza</citta>
+        <email>chiara.marini@scuola.it</email>
+        <ruolo>Studente</ruolo>
+        <mediaVoti>9.65</mediaVoti>
+    </studente>
+    <studente matricola="STU007">
+        <nome>Matteo</nome>
+        <cognome>Galli</cognome>
+        <dataNascita>2007-03-04</dataNascita>
+        <citta>Milano</citta>
+        <email>matteo.galli@scuola.it</email>
+        <ruolo>Studente</ruolo>
+        <mediaVoti>5.80</mediaVoti>
+    </studente>
+    <studente matricola="STU008">
+        <nome>Elena</nome>
+        <cognome>Conti</cognome>
+        <dataNascita>2007-12-01</dataNascita>
+        <citta>Como</citta>
+        <email>elena.conti@scuola.it</email>
+        <ruolo>Studente</ruolo>
+        <mediaVoti>8.45</mediaVoti>
+    </studente>
+</classe>`;
+
+        // Inizializzazione al caricamento della pagina
+        window.addEventListener('DOMContentLoaded', () => {
+            caricaDatiEsempio();
+        });
+
+        /**
+         * Carica e processa la stringa XML di esempio
+         */
+        function caricaDatiEsempio() {
+            processaStringaXML(xmlEsempio5A);
+            mostraToast("Dati della Classe 5A caricati con successo!", "success");
+        }
+
+        /**
+         * Gestisce l'evento di upload file da computer dell'utente
+         */
+        function gestisciFileCaricato(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const contenuto = e.target.result;
+                processaStringaXML(contenuto);
+                mostraToast(`File "${file.name}" caricato correttamente!`, "success");
+            };
+            reader.onerror = function() {
+                mostraErrore("Errore di Lettura", "Impossibile leggere il file selezionato dal disco.");
+            };
+            reader.readAsText(file);
+        }
+
+        /**
+         * Effettua il parsing della stringa XML usando DOMParser e popola lo stato locale
+         */
+        function processaStringaXML(xmlText) {
+            nascondiErrore();
+            XMLRawContent = xmlText;
+
+            try {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+
+                // Controllo errori di sintassi XML (tag <parsererror>)
+                const parserError = xmlDoc.getElementsByTagName("parsererror");
+                if (parserError.length > 0) {
+                    const errorDetails = parserError[0].textContent || "Errore di sintassi generico nell'XML";
+                    mostraErrore("XML Malformato o Non Valido", errorDetails);
+                    return;
+                }
+
+                // Estrazione dati classe e studenti
+                const studentiNodes = xmlDoc.getElementsByTagName("studente");
+                const classeNode = xmlDoc.getElementsByTagName("classe")[0];
+                
+                if (classeNode) {
+                    const nomeClasse = classeNode.getAttribute("nome") || "Anagrafica";
+                    const anno = classeNode.getAttribute("annoScolastico") || "";
+                    document.getElementById("badge-anno").textContent = `${nomeClasse} ${anno}`.trim();
+                }
+
+                listaStudenti = [];
+                for (let i = 0; i < studentiNodes.length; i++) {
+                    const s = studentiNodes[i];
+                    
+                    const getTagText = (tagName, defaultVal = "") => {
+                        const el = s.getElementsByTagName(tagName)[0];
+                        return el ? el.textContent.trim() : defaultVal;
+                    };
+
+                    const studente = {
+                        matricola: s.getAttribute("matricola") || getTagText("matricola", `ID-${i+1}`),
+                        nome: getTagText("nome", "N/D"),
+                        cognome: getTagText("cognome", "N/D"),
+                        dataNascita: getTagText("dataNascita", "-"),
+                        citta: getTagText("citta", "N/D"),
+                        email: getTagText("email", "-"),
+                        ruolo: getTagText("ruolo", "Studente"),
+                        mediaVoti: parseFloat(getTagText("mediaVoti", "0")) || 0
+                    };
+
+                    listaStudenti.push(studente);
+                }
+
+                // Inizializza filtri e ordina
+                studentiFiltrati = [...listaStudenti];
+                aggiornaStatistiche();
+                ordinaEDisegna();
+
+            } catch (err) {
+                mostraErrore("Errore nel Processing XML", err.message);
+            }
+        }
+
+        /**
+         * Calcola e aggiorna le schede statistiche in alto
+         */
+        function aggiornaStatistiche() {
+            const totale = listaStudenti.length;
+            document.getElementById("stat-totale").textContent = totale;
+
+            if (totale === 0) {
+                document.getElementById("stat-media").textContent = "0.0";
+                document.getElementById("stat-top-student").textContent = "-";
+                document.getElementById("stat-citta").textContent = "0";
+                return;
+            }
+
+            // Somma e media voti
+            const sommaVoti = listaStudenti.reduce((acc, curr) => acc + curr.mediaVoti, 0);
+            const mediaGenerale = (sommaVoti / totale).toFixed(2);
+            document.getElementById("stat-media").textContent = mediaGenerale;
+
+            // Top studente per media voti
+            const topStudent = [...listaStudenti].sort((a, b) => b.mediaVoti - a.mediaVoti)[0];
+            document.getElementById("stat-top-student").textContent = topStudent ? `${topStudent.cognome} ${topStudent.nome.charAt(0)}.` : "-";
+
+            // Conteggio città uniche
+            const cittaSet = new Set(listaStudenti.map(s => s.citta.toLowerCase()));
+            document.getElementById("stat-citta").textContent = cittaSet.size;
+        }
+
+        /**
+         * Ordina l'array filtrato e ridisegna la tabella HTML
+         */
+        function ordinaEDisegna() {
+            const { column, direction } = sortCurrent;
+
+            studentiFiltrati.sort((a, b) => {
+                let valA = a[column];
+                let valB = b[column];
+
+                if (typeof valA === 'string') {
+                    valA = valA.toLowerCase();
+                    valB = valB.toLowerCase();
+                }
+
+                if (valA < valB) return direction === 'asc' ? -1 : 1;
+                if (valA > valB) return direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            aggiornaIconeOrdinamento();
+            renderTabella();
+        }
+
+        /**
+         * Inverte o imposta la colonna di ordinamento
+         */
+        function ordinaPer(colonna) {
+            if (sortCurrent.column === colonna) {
+                sortCurrent.direction = sortCurrent.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortCurrent.column = colonna;
+                sortCurrent.direction = 'asc';
+            }
+            ordinaEDisegna();
+        }
+
+        /**
+         * Aggiorna le icone direzionali nelle intestazioni <th>
+         */
+        function aggiornaIconeOrdinamento() {
+            const colonne = ['matricola', 'cognome', 'dataNascita', 'citta', 'ruolo', 'mediaVoti'];
+            colonne.forEach(col => {
+                const icon = document.getElementById(`sort-icon-${col}`);
+                if (!icon) return;
+
+                if (sortCurrent.column === col) {
+                    icon.className = sortCurrent.direction === 'asc' 
+                        ? 'fa-solid fa-sort-up text-blue-600 text-xs' 
+                        : 'fa-solid fa-sort-down text-blue-600 text-xs';
+                } else {
+                    icon.className = 'fa-solid fa-sort text-slate-400 text-xs';
+                }
+            });
+        }
+
+        /**
+         * Genera l'HTML delle righe della tabella basandosi su `studentiFiltrati`
+         */
+        function renderTabella() {
+            const tbody = document.getElementById("table-body");
+            const emptyState = document.getElementById("empty-state");
+            const infoRisultati = document.getElementById("info-risultati");
+
+            tbody.innerHTML = "";
+            infoRisultati.textContent = `Mostrati ${studentiFiltrati.length} di ${listaStudenti.length} studenti`;
+
+            if (studentiFiltrati.length === 0) {
+                emptyState.classList.remove("hidden");
+                return;
+            } else {
+                emptyState.classList.add("hidden");
+            }
+
+            studentiFiltrati.forEach((stu, index) => {
+                const tr = document.createElement("tr");
+                // Alternanza colori righe (zebra striping) & hover
+                const bgClass = index % 2 === 0 ? "bg-white" : "bg-slate-50/70";
+                tr.className = `${bgClass} hover:bg-blue-50/50 transition-colors duration-150 group`;
+
+                // Badge colorati per la media voti
+                let badgeMediaClass = "bg-slate-100 text-slate-700 border-slate-300";
+                if (stu.mediaVoti >= 9.0) {
+                    badgeMediaClass = "bg-emerald-100 text-emerald-800 border-emerald-300 font-bold";
+                } else if (stu.mediaVoti >= 7.5) {
+                    badgeMediaClass = "bg-blue-100 text-blue-800 border-blue-300 font-semibold";
+                } else if (stu.mediaVoti >= 6.0) {
+                    badgeMediaClass = "bg-amber-100 text-amber-800 border-amber-300";
+                } else {
+                    badgeMediaClass = "bg-rose-100 text-rose-800 border-rose-300 font-bold";
+                }
+
+                // Formattazione Data di Nascita
+                let dataFormattata = stu.dataNascita;
+                if (stu.dataNascita.includes('-')) {
+                    const parti = stu.dataNascita.split('-');
+                    if (parti.length === 3) dataFormattata = `${parti[2]}/${parti[1]}/${parti[0]}`;
+                }
+
+                // Generazione celle
+                tr.innerHTML = `
+                    <td class="px-5 py-3.5 font-mono text-xs text-slate-500 font-medium">${stu.matricola}</td>
+                    <td class="px-5 py-3.5 font-semibold text-slate-900 group-hover:text-blue-600 transition-colors">
+                        ${stu.cognome} ${stu.nome}
+                    </td>
+                    <td class="px-5 py-3.5 text-slate-600">${dataFormattata}</td>
+                    <td class="px-5 py-3.5 text-slate-600">
+                        <span class="inline-flex items-center gap-1">
+                            <i class="fa-solid fa-location-dot text-slate-400 text-xs"></i>
+                            ${stu.citta}
+                        </span>
+                    </td>
+                    <td class="px-5 py-3.5 text-slate-600 font-mono text-xs">
+                        <a href="mailto:${stu.email}" class="text-blue-600 hover:underline inline-flex items-center gap-1">
+                            <i class="fa-regular fa-envelope text-xs"></i>
+                            ${stu.email}
+                        </a>
+                    </td>
+                    <td class="px-5 py-3.5">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${stu.ruolo.includes('Rappresentante') ? 'bg-purple-100 text-purple-800 border border-purple-200' : 'bg-slate-100 text-slate-700 border border-slate-200'}">
+                            ${stu.ruolo}
+                        </span>
+                    </td>
+                    <td class="px-5 py-3.5 text-right">
+                        <span class="inline-block px-2.5 py-1 rounded-lg text-xs border ${badgeMediaClass}">
+                            ${stu.mediaVoti.toFixed(2)}
+                        </span>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        /**
+         * Filtra la lista di studenti in base all'input della barra di ricerca
+         */
+        function filtraStudenti() {
+            const query = document.getElementById("searchInput").value.trim().toLowerCase();
+            const btnClear = document.getElementById("btnClearSearch");
+
+            if (query.length > 0) {
+                btnClear.classList.remove("hidden");
+            } else {
+                btnClear.classList.add("hidden");
+            }
+
+            studentiFiltrati = listaStudenti.filter(s => {
+                return s.nome.toLowerCase().includes(query) ||
+                       s.cognome.toLowerCase().includes(query) ||
+                       s.citta.toLowerCase().includes(query) ||
+                       s.matricola.toLowerCase().includes(query) ||
+                       s.email.toLowerCase().includes(query);
+            });
+
+            ordinaEDisegna();
+        }
+
+        /**
+         * Svuota il campo di ricerca e ripristina la tabella intera
+         */
+        function pulisciRicerca() {
+            document.getElementById("searchInput").value = "";
+            filtraStudenti();
+        }
+
+        /**
+         * Mostra il modal con il sorgente XML formattato
+         */
+        function apriModalXML() {
+            const modal = document.getElementById("xmlModal");
+            const codeElem = document.getElementById("xmlSourceContent");
+            codeElem.textContent = XMLRawContent || "Nessun codice XML caricato.";
+            modal.classList.remove("hidden");
+        }
+
+        /**
+         * Chiude il modal del sorgente XML
+         */
+        function chiudiModalXML() {
+            document.getElementById("xmlModal").classList.add("hidden");
+        }
+
+        /**
+         * Copia negli appunti il codice XML dal modal
+         */
+        function copiaCodiceXML() {
+            if (!XMLRawContent) return;
+            
+            // Metodo compatibile per iframe/sandbox
+            const textarea = document.createElement("textarea");
+            textarea.value = XMLRawContent;
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand("copy");
+                mostraToast("Codice XML copiato negli appunti!", "success");
+            } catch (err) {
+                mostraToast("Impossibile copiare il testo", "error");
+            }
+            document.body.removeChild(textarea);
+        }
+
+        /**
+         * Esporta i dati correnti parsed in formato JSON scaricabile
+         */
+        function esportaJSON() {
+            if (listaStudenti.length === 0) {
+                mostraToast("Nessun dato da esportare!", "error");
+                return;
+            }
+
+            const jsonStr = JSON.stringify(listaStudenti, null, 2);
+            const blob = new Blob([jsonStr], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "anagrafica_classe.json";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            mostraToast("File JSON generato e scaricato!", "success");
+        }
+
+        /**
+         * Mostra banner di errore parsing/caricamento XML
+         */
+        function mostraErrore(titolo, messaggio) {
+            const banner = document.getElementById("error-banner");
+            document.getElementById("error-title").textContent = titolo;
+            document.getElementById("error-message").textContent = messaggio;
+            banner.classList.remove("hidden");
+        }
+
+        /**
+         * Nasconde il banner di errore
+         */
+        function nascondiErrore() {
+            document.getElementById("error-banner").classList.add("hidden");
+        }
+
+        /**
+         * Mostra un messaggio di feedback tipo Toast temporaneo
+         */
+        function mostraToast(messaggio, tipo = "success") {
+            const toast = document.getElementById("toast");
+            const toastMsg = document.getElementById("toast-message");
+            const toastIcon = document.getElementById("toast-icon");
+
+            toastMsg.textContent = messaggio;
+
+            if (tipo === "success") {
+                toastIcon.className = "fa-solid fa-circle-check text-emerald-400 text-lg";
+            } else {
+                toastIcon.className = "fa-solid fa-circle-xmark text-rose-400 text-lg";
+            }
+
+            toast.classList.remove("translate-y-10", "opacity-0", "pointer-events-none");
+            
+            setTimeout(() => {
+                toast.classList.add("translate-y-10", "opacity-0", "pointer-events-none");
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
